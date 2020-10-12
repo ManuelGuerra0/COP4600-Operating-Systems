@@ -1,0 +1,70 @@
+Name
+	P2 - POSIX Standards & Bindings
+
+Synopsis
+	Create a text and GUI program to display a file after reading it 
+	via POSIX calls.
+
+Description
+	For the text program, I created  3 files: read_file.cpp,
+	read_file.h, and displayfile.cpp. Read_file.h was used to delcare
+	the char *read_file(const char *filename) function. The function
+	would take in a filename and return the pointer to the array of
+	contents of the file. I implemented this in the read_file.cpp
+	using POSIX calls. ACCESS was used to see if the file exists
+	(if it doesn't it returns a nullptr). After accessing the file,
+	we used FOPEN to access the contents of the file. We then use
+	FSEEK and FTELL to count the characters of the file from beginning
+	to end to determine the file size. We can now dynamically create
+	a buffer using MALLOC where we will store the pointer of the file
+	contents. After getting the size and file contents we can store
+	the data pointer in the buffer using FREAD. Since we opened the 
+	file we must close it using FCLOSE. Finally, we return the buffer
+	pointer.
+	Displayfile.cpp would invoke the read_file() function passing
+	command line arguments. The result is stored in char *pointer.
+	If the file exists, the contents of the pointer would be printed
+	and FREE to free the memory allocated to that pointer. If the file 
+	does not exist, it gives an error.
+
+	For the GUI program, I had to edit 2 files: P2Activity.java and
+	native-calls.cpp.
+	The changes made in P2Activity.java were the addition of 3 GUI
+	elements: filenameBox, submitButton, and displayBox. I then defined
+	what each element was going to do: filenameBox would edit text,
+	submitButton would be a button, and displayBox would be a text view.
+	The program works by invoking the submitButton by user's click on
+	the interface which would then allow filenameBox to receive the
+	user input and convert it into a String. DisplayBox would take
+	this string and invoke the stringFromJNI() function from
+	native-calls.cpp.
+	In native-calls.cpp, I added the parameter "jstring input" so we
+	can capture the user's input. We would then invoke the read_file()
+	function with the user's input to receive a pointer to the array of
+	file contents. If the file does not exist, it gives an error. If
+	the file does exist, we store the contents into a jstring and use
+	FREE to free the memory allocated for that pointer. Finally, we
+	return the jstring output.
+
+TESTING
+	- Decompressed displayfile.tgz and compiled text program
+	- Tested for file exists (example.txt) and file not exist (nope.txt)
+	- Also tested number/symbols (math.txt) and large files (BeeMovie.txt)
+	- Also tests for error given when file name is misspelled (math.tx)
+	- Unzipped nativeapp.zip and compiled GUI program
+	- Ran the same tests mentioned above
+	- Checked for memory leaks using valgrind on text and GUI programs
+
+BUGS
+	No known bugs.
+
+LINK
+	https://youtu.be/1gNw1ZysHfE
+
+
+REFERENCES/CITATIONS
+		Stack Overflow "How to read the content of a file to a string in C?"
+		https://stackoverflow.com/questions/174531/how-to-read-the-content-of-a-file-to-a-string-in-c
+
+AUTHOR
+        Manuel Guerra

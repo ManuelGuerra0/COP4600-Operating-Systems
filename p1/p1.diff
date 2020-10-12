@@ -1,0 +1,143 @@
+diff --git a/Makefile b/Makefile
+index 4e88dcc..1740252 100644
+--- a/Makefile
++++ b/Makefile
+@@ -913,7 +913,7 @@ export mod_sign_cmd
+ 
+ 
+ ifeq ($(KBUILD_EXTMOD),)
+-core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
++core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/ securitylevel/
+ 
+ vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
+ 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index e93ef0b..413485b 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -338,6 +338,8 @@
+ 329	common	pkey_mprotect		sys_pkey_mprotect
+ 330	common	pkey_alloc		sys_pkey_alloc
+ 331	common	pkey_free		sys_pkey_free
++332	common	get_security_level	sys_get_security_level
++333	common	set_security_level	sys_set_security_level	
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 75d4bee..af960ec 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1654,6 +1654,10 @@ struct task_struct {
+ 	const struct sched_class *sched_class;
+ 	struct sched_entity se;
+ 	struct sched_rt_entity rt;
++
++	//This is where I added the security level parameter
++	//sched.h is where all the tasks are spawned
++	int security_level;
+ #ifdef CONFIG_SCHED_WALT
+ 	struct ravg ravg;
+ 	/*
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 91a740f..b240b45 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -903,4 +903,7 @@ asmlinkage long sys_pkey_mprotect(unsigned long start, size_t len,
+ asmlinkage long sys_pkey_alloc(unsigned long flags, unsigned long init_val);
+ asmlinkage long sys_pkey_free(int pkey);
+ 
++//This is where I defined the prototype of my syscalls
++asmlinkage int sys_get_security_level(int pid);
++asmlinkage int sys_set_security_level(int pid, int new_level);
+ #endif
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 9321b1a..9540841 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1949,6 +1949,8 @@ long _do_fork(unsigned long clone_flags,
+ 	p = copy_process(clone_flags, stack_start, stack_size,
+ 			 child_tidptr, NULL, trace, tls, NUMA_NO_NODE);
+ 	add_latent_entropy();
++
++	p -> security_level = 0;
+ 	/*
+ 	 * Do this prior waking up the new thread - the thread pointer
+ 	 * might get invalid after that point, if the thread exits quickly.
+diff --git a/securitylevel/Makefile b/securitylevel/Makefile
+new file mode 100644
+index 0000000..9f77373
+--- /dev/null
++++ b/securitylevel/Makefile
+@@ -0,0 +1 @@
++obj-y := securitylevel.o
+diff --git a/securitylevel/securitylevel.c b/securitylevel/securitylevel.c
+new file mode 100644
+index 0000000..52443ee
+--- /dev/null
++++ b/securitylevel/securitylevel.c
+@@ -0,0 +1,56 @@
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/syscalls.h>
++#include "securitylevel.h"
++//******************************************************************************************************
++//processes are stored in a circular doubly linked list called task list
++//each element in the task list is of type struct task_struct
++//a task struct contains contains all the information that the kernel has and needs about a process
++//******************************************************************************************************
++asmlinkage int sys_get_security_level(int pid){
++        struct task_struct *p = find_task_by_vpid(pid);
++//A user process can read the security level of any process (3)
++        if(sys_kill(p->pid, 0) == 0){
++//new_task-> is equivalent to (*new_task).security_level
++        return p->security_level;
++        }
++        else{
++        return -1;
++        }
++}
++asmlinkage int sys_set_security_level(int pid, int new_level){
++		//We need to access the struct to get the security level
++        struct task_struct *p = find_task_by_vpid(pid);
++        //if sudo, can read and write security level of any process (2)
++        //so no restrictions
++        if( sys_geteuid()==0 && new_level >= 0){
++                p->security_level = new_level;
++                return new_level;
++        }
++        //check if the a process is modifying its own security level
++        else if(current->pid == pid && current->security_level >= new_level && new_level >= 0){
++//new_level >= 0 just checks to see if the new security level is valid
++//I don't know what the upper limit of the security level is so I am leaving it open ended
++        //A user process can lower its own security level (assuming the new level is greater than 0 (6)
++                //Its security level is now lowered
++                current->security_level = new_level;
++        return new_level;
++        }
++
++
++
++
++
++
++
++        //if the user process security level is greater that the security level of the process it is trying to modify (4) (5)
++                //it can raise or lower it
++        else if(current->security_level > p->security_level && new_level >= 0 && current->security_level >= new_level){
++                        //make sure you aren't raising the security level of a process to higher than yourself
++                p->security_level = new_level;
++                return new_level;
++        }
++//if none of the conditions set in the document are true, then the security level of a process will not be changed
++        return -1;
++}
+diff --git a/securitylevel/securitylevel.h b/securitylevel/securitylevel.h
+new file mode 100644
+index 0000000..1840f93
+--- /dev/null
++++ b/securitylevel/securitylevel.h
+@@ -0,0 +1,2 @@
++asmlinkage int sys_get_project_level(int pid);
++asmlinkage int sys_set_project_level(int pid, int new_level);

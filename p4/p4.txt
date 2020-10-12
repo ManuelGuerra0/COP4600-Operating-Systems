@@ -1,0 +1,32 @@
+.TH Project 4
+.SH NAME
+Bonus Project - Device Drivers
+.SH SYNOPSIS
+Implementing a userspace device driver to read and interpret byte data from a virtual USB and joystick.
+.SH DESCRIPTION
+For my virtual USB driver I needed three crucial components: a double pointer to retrieve the list of all devices, a device handle, and LibUSB session. The session and double pointer will be used to obtain all devices that are currently connected. We use the VENDOR_ID (0x9A7A) and PRODUCT_ID (0xBA17) to open the device we specifically want and store it in our device handle. After getting the device we want we can free the list of devices we don't need. We must claim interface 0 (which the joystick uses) with our specific device handle. I made sure to check for errors such as LibUSB initialization error, unable to find device, unable to open device, and unable to claim interface.
+For my virtual joystick I used the uinput_user_dev structure to act as a joystick in userspace. I used a file descriptor to uniquely identify the file we will open "/dev/uinput" using a POSIX call revealing the location of js0. The ioctl commands were used to set up how the joystick was going to behave (informing the joystick what events it will have: left, right, up, down, middle, and button). Furthermore, we defined the max and min for X and Y to capture their absolute values (-1, 0, and 1) when using the joystick. For the while loop I needed three important values: an integer to use for bitwise operation, an integer to show how many bytes were written, and a buffer for the joystick to write byte data. I used a libusb_interrupt_transfer because it will always wait for events so we can accurately report and send data in real time. The sequence of if-statements determine which event is happening to the joystick at that moment. I achieved this using the emit() function (declared near the top of my chompdrv.c file). Emit() takes input events from the parameters passed and uses a POSIX call to write to the js0 file. After using emit() I used synchronization to separate events in time. The while loop will keep on going until the terminal is closed or if you exit chompapp. Afterwards, the USB system ejects the interface and closes the device handle.
+.SH TESTING
+1) In one terminal open the chompapp program
+2) In another terminal we must do sudo usbip attach then sudo chompdrv/chompdrv
+3) In a third terminal we run sudo jstest to see info about buttons and axes
+4) Use the chompapp to test X, Y, and button states match the jstest info
+5) Also use chompread to show USB device raw data
+6) Use Valgrind to check for memory leaks
+.SH BUGS
+No bugs found
+.SH LINK
+https://youtu.be/MH2psqZ_CXM
+.SH CITATIONS
+https://www.dreamincode.net/forums/topic/148707-introduction-to-using-libusb-10/
+https://www.kernel.org/doc/html/v4.12/input/uinput.html
+https://stackoverflow.com/questions/16032982/getting-live-info-from-dev-input
+https://elixir.bootlin.com/linux/v4.0/source/include/uapi/linux/uinput.h#L148
+http://man7.org/linux/man-pages/man2/ioctl.2.html
+https://stackoverflow.com/questions/5190921/simulating-absolute-mouse-movements-in-linux-using-uinput
+https://stackoverflow.com/questions/45060804/virtual-keyboard-linux-libevdev-sending-event
+https://www.kernel.org/doc/html/v4.17/input/event-codes.html
+https://stackoverflow.com/questions/6474949/libusb-interrupt-transfer
+https://lwn.net/Articles/717761/
+.SH AUTHOR
+Manuel Guerra

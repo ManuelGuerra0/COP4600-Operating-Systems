@@ -1,0 +1,15 @@
+diff --git a/init/main.c b/init/main.c
+index 5e13c544bbf4..8d1a7c7f99ed 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -1070,6 +1070,10 @@ static int __ref kernel_init(void *unused)
+ 
+ 	rcu_end_inkernel_boot();
+ 
++	printk("\n");
++	printk("##### Manuel Guerra (UFID: 8811-2134) Go Gators! #####");
++	printk("\n");
++
+ 	if (ramdisk_execute_command) {
+ 		ret = run_init_process(ramdisk_execute_command);
+ 		if (!ret)

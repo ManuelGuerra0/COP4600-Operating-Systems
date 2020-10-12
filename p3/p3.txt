@@ -1,0 +1,45 @@
+Name
+	P3 - File Systems
+
+Synopsis
+	Implement a userspace filesystem daemon using the FUSE API to
+	access data in WAD format.
+
+Description
+	The Wad Class implements 7 functions. POSIX calls were needed
+	in order to read and get contents of a file such as size and
+	the actual contents of the file. The best approach to make the
+	Wad file system was using a hash map. The key for mapping
+	elements was the descriptor first 4 elements of the ASCII name.
+	The loadWad function would create a Wad object which is delcared
+	in the Wad.h and organizes the entire file system structure. The
+	other functions would then use that object to manipulate the
+	contents of that file system at any given time efficiently.
+	Getting the magic number required using an unsigned integer
+	and converting the file into binary to discover the first four
+	bytes of the file (in little Endian).
+	
+	My daemon (wadfs) also used POSIX calls to access file data
+	such as the .WAD files that need to be tested on and retreive
+	a target file by using the directory. We use FUSE to navigate
+	the contents of the file system of a given .WAD file passed down.
+
+TESTING
+
+	1) Passed down a file name and returned the correct output
+	2) Passed down a dirctory and returned the correct output
+	3) Tested maker element with format "E#M#"
+	4) Tested maker element with format "_START"
+	5) Used FUSE to test out every given .WAD file
+
+BUGS
+	No bugs found.
+
+LINK
+
+
+REFERENCES/CITATIONS
+		
+
+AUTHOR
+        Manuel Guerra

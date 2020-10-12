@@ -1,0 +1,15 @@
+P0 Report (Manuel Guerra) 
+
+NAME 
+grep – searches files with a specific pattern. 
+nano – pulls up built in text editor. 
+SYNOPSIS 
+Used grep and nano commands to alter messages in the grub menu and debug mode of the operating system. 
+DESCRIPTION 
+To modify the boot message, we must be in the /usr/rep/src/reptilian-kernel directory to grep -rn the clue given in P0 “rcu_end_inkernel_boot()” which produced the result: /init/main.c which means we change directory to /init and use the nano command to edit the file. I added a printk() with my message inside right after the rcu_end_inkernel_boot() function and saved the edit. 
+Additionally, to modify the GRUB menu we had to first go to the /mnt/sysroot/ directory to grep -rn the clue given in P0 “Reptilian 19.01-A8.1” which produced the result: /grub/menu.lst which means we change directory to /grub and the sudo nano command (to gain administrative permission) to edit the file. I simply added my name after the phrase “Reptilian 19.01-A8.1” and saved the edit. After editing everything, I compiled the kernel with a sequence of commands in this order: make, sudo make install, sudo make modules_install. I then restarted the VM to see if my results were successful and it worked. 
+Lastly for testing purposes, I created the patch file p0.diff, transferred it to my local host using sftp, then I created a clean VM and used sftp to transfer the p0.diff to remote host, executed “git apply p0.diff” and compiled the kernel using “make && sudo make install && sudo make modules_install”, and the compilation yields the desired result. 
+OPTIONS 
+-rn – used with the grep command to recursively search for results and output which line the result is found within a file. 
+
+Unlisted YouTube Link: https://youtu.be/Z02-_A6gcwY 
